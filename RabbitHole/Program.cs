@@ -40,6 +40,10 @@ namespace RabbitHole
                     {
                         OpenArchive(parts);
                     }
+                    else if (parts[0].Equals("brute"))
+                    {
+                        BruteArchive(parts);
+                    }
                     else if (parts[0].Equals("list"))
                     {
                         listFiles();
@@ -82,6 +86,7 @@ namespace RabbitHole
                 }
                 catch (Exception e)
                 {
+                    Console.WriteLine(e.ToString());
                     Console.WriteLine("An error occured while executing command. For help on command use, type help or ?");
                 }
 
@@ -96,6 +101,7 @@ namespace RabbitHole
             Console.WriteLine("RabbitHole commands and syntax\n");
             Console.WriteLine("{0,-8}{1,-30}{2,-30}", "new", "<path and archive name>", "<archive size in MB>");
             Console.WriteLine("{0,-8}{1,-30}{2,-30}", "open", "<path and file name>", "<password for intended volume>");
+            Console.WriteLine("{0,-8}{1,-30}{2,-30}", "brute", "<path and file name>", "<passwords file>");
             Console.WriteLine("{0,-8}", "list");
             Console.WriteLine("{0,-8}{1,-30}", "put", "<path and file name");
             Console.WriteLine("{0,-8}{1,-30}{2,-30}", "get", "<file in archive>", "<destination path and file name>");
@@ -198,6 +204,53 @@ namespace RabbitHole
                 Console.WriteLine("No volume could be opened using specified password. Please check that you typed it correctly.");
             else
                 Console.WriteLine("Volume opened");
+
+        }
+
+        private static void BruteArchive(string[] parts)
+        {
+            if (!Validates(() => parts.Length == 3, "brute archive keyword usage: brute <path and file name> <passwords.txt>, example: open c:\\stuff\\myArchive.rabbit passwords.txt")) return;
+
+            String path = parts[1];
+            String fileName = "";
+
+            if (!path.ToLower().EndsWith(".rabbit"))
+                path += ".rabbit";
+
+            if (path.Contains("\\"))
+                fileName = path.Substring(path.LastIndexOf("\\") + 1);
+            else
+            {
+                fileName = path;
+            }
+
+            fileName = fileName.Substring(0, fileName.LastIndexOf("."));
+
+            if (!Validates(() => System.IO.File.Exists(path), "Could not find archive with filename " + path)) return;
+
+            int length = (int)new System.IO.FileInfo(path).Length;
+
+            _currentArchive = new Archive(fileName, path, length);
+
+            _currentArchive.UserConfirmationFunc = UserConfirmation;
+
+            if (!Validates(() => System.IO.File.Exists(parts[2]), "Could not find passwords file " + parts[2])) return;
+            String pass = "";
+            bool volumeOpened = false;
+            int attempts = 0;
+            System.IO.StreamReader pwFile = new System.IO.StreamReader(parts[2]);
+            while (!volumeOpened && (pass = pwFile.ReadLine()) != null)
+            {
+                System.Console.WriteLine("trying password \"{0}\"", pass);
+                ++attempts;
+                volumeOpened = _currentArchive.OpenVolume(pass);
+            }
+            pwFile.Close();
+
+            if (!volumeOpened)
+                Console.WriteLine("No volume could be opened using any of the {0} specified passwords.", attempts);
+            else
+                Console.WriteLine("Volume opened with password \"{0}\"", pass);
 
         }
 
