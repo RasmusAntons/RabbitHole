@@ -69,11 +69,23 @@ namespace RabbitHole.Domain
             while (volumePosition < _noOfBytesInArchive -32)  //try opening volumes and checking whether they verify correctly
             {
                 binaryReader.BaseStream.Seek(volumePosition, SeekOrigin.Begin);
-                Volume volume = Volume.Deserialize(binaryReader.BaseStream, password, _noOfBytesInArchive-volumePosition);
+                Volume volume;
+                try
+                {
+                    volume = Volume.Deserialize(binaryReader.BaseStream, password, _noOfBytesInArchive - volumePosition);
+                }
+                catch (InvalidAlgorithmException)
+                {
+                    volume = null;
+                }
+                catch (Org.BouncyCastle.Crypto.InvalidCipherTextException)
+                {
+                    volume = null;
+                }
 
                 if (volume != null)
                 {
-                    volume.VolumeName = "Volume" + (volumeNo +1);
+                    volume.VolumeName = "Volume" + (volumeNo + 1);
                     AlgorithmNo = volume.AlgorithmNo;
                     volume.VolumePosition = volumePosition;
                     volume.VolumeNo = volumeNo;

@@ -83,8 +83,8 @@ namespace RabbitHole.Domain
                 return new CbcBlockCipher(new SerpentEngine());
             else if (algorithm == 3)
                 return new CbcBlockCipher(new TwofishEngine());
-
-            else return null;
+            else
+                throw new InvalidAlgorithmException();
         }
 
 
@@ -144,4 +144,7 @@ namespace RabbitHole.Domain
             return hash;
         }
     }
+
+    public class InvalidAlgorithmException : Exception
+    { }
 }
